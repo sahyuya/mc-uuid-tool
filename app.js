@@ -1,243 +1,444 @@
-const resultBox = document.getElementById("result");
+const API_BASE =
+"https://sahyuya.github.io/mc-uuid-tool/";
+
+const resultBox =
+document.getElementById("result");
+
+const resultContent =
+document.getElementById("resultContent");
+
+const loadingBox =
+document.getElementById("loading");
+
+const searchBtn =
+document.getElementById("searchBtn");
+
+function showLoading() {
+
+    loadingBox.classList.remove("hidden");
+
+    resultBox.classList.add("hidden");
+
+    searchBtn.disabled = true;
+}
+
+function hideLoading() {
+
+    loadingBox.classList.add("hidden");
+
+    searchBtn.disabled = false;
+}
 
 function isUUID(str) {
-    return /^[0-9a-fA-F-]{36}$/.test(str);
-}
 
-function normalizeUUID(uuid) {
-    return uuid.replace(/-/g, "");
-}
-
-function formatUUID(uuid) {
-    return uuid.replace(
-        /^(.{8})(.{4})(.{4})(.{4})(.{12})$/,
-        "$1-$2-$3-$4-$5"
-    );
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
 function isFloodgateUUID(uuid) {
-    return uuid.startsWith("00000000-0000-0000-");
+
+    return uuid.startsWith(
+        "00000000-0000-0000-"
+    );
+}
+
+async function api(path) {
+
+    const response =
+        await fetch(
+            API_BASE + path
+        );
+
+    const json =
+        await response.json();
+
+    if (!response.ok) {
+
+        throw new Error(
+            json.error || "API Error"
+        );
+    }
+
+    return json;
+}
+
+async function copyText(text) {
+
+    try {
+
+        await navigator.clipboard.writeText(text);
+
+    } catch {
+
+        alert("コピーに失敗しました");
+    }
+}
+
+function createCopyButton(text) {
+
+    return `
+        <button
+            class="copy-btn"
+            onclick="copyText('${text}')"
+        >
+            コピー
+        </button>
+    `;
+}
+
+function createJavaCard(data) {
+
+    return `
+    <div class="result-card java">
+
+        <div class="result-title">
+            Java版
+        </div>
+
+        <div class="result-row">
+            <div class="result-label">
+                プレイヤー名
+            </div>
+
+            <div class="result-value">
+                ${data.name}
+            </div>
+        </div>
+
+        <div class="result-row">
+
+            <div class="result-label">
+                UUID (ハイフンあり)
+            </div>
+
+            <div class="copy-row">
+
+                <div class="result-value">
+                    ${data.uuid}
+                </div>
+
+                ${createCopyButton(data.uuid)}
+
+            </div>
+
+        </div>
+
+        <div class="result-row">
+
+            <div class="result-label">
+                UUID (ハイフンなし)
+            </div>
+
+            <div class="copy-row">
+
+                <div class="result-value">
+                    ${data.uuidNoDash}
+                </div>
+
+                ${createCopyButton(data.uuidNoDash)}
+
+            </div>
+
+        </div>
+
+    </div>
+    `;
+}
+
+function createBedrockCard(data) {
+
+    return `
+    <div class="result-card bedrock">
+
+        <div class="result-title">
+            統合版 (Bedrock)
+        </div>
+
+        <div class="result-row">
+
+            <div class="result-label">
+                Gamertag
+            </div>
+
+            <div class="result-value">
+                ${data.gamertag}
+            </div>
+
+        </div>
+
+        <div class="result-row">
+
+            <div class="result-label">
+                XUID
+            </div>
+
+            <div class="copy-row">
+
+                <div class="result-value">
+                    ${data.xuid}
+                </div>
+
+                ${createCopyButton(data.xuid)}
+
+            </div>
+
+        </div>
+
+        <div class="result-row">
+
+            <div class="result-label">
+                Floodgate UUID
+            </div>
+
+            <div class="copy-row">
+
+                <div class="result-value">
+                    ${data.uuid}
+                </div>
+
+                ${createCopyButton(data.uuid)}
+
+            </div>
+
+        </div>
+
+        <div class="result-row">
+
+            <div class="result-label">
+                Floodgate UUID (ハイフンなし)
+            </div>
+
+            <div class="copy-row">
+
+                <div class="result-value">
+                    ${data.uuidNoDash}
+                </div>
+
+                ${createCopyButton(data.uuidNoDash)}
+
+            </div>
+
+        </div>
+
+    </div>
+    `;
+}
+
+function showError(message) {
+
+    resultContent.innerHTML = `
+        <div class="result-card">
+            <div class="error">
+                ${message}
+            </div>
+        </div>
+    `;
+
+    resultBox.classList.remove("hidden");
 }
 
 async function searchPlayer() {
 
-    resultBox.innerHTML = "検索中...";
-
-    const mode =
-        document.getElementById("mode").value;
-
-    const input =
-        document.getElementById("input").value.trim();
+    showLoading();
 
     try {
 
-        if (mode === "java") {
+        const platform =
+            document.getElementById("platform").value;
 
-            if (isUUID(input))
-                return searchJavaUUID(input);
+        const direction =
+            document.getElementById("direction").value;
 
-            return searchJavaName(input);
+        const input =
+            document.getElementById("input")
+                .value
+                .trim();
+
+        if (!input) {
+
+            throw new Error(
+                "入力してください"
+            );
         }
 
-        if (mode === "bedrock") {
+        let html = "";
 
-            if (isUUID(input))
-                return searchBedrockUUID(input);
+        // ==========
+        // 自動判定
+        // ==========
 
-            return searchBedrockName(input);
+        if (platform === "auto") {
+
+            if (isUUID(input)) {
+
+                if (isFloodgateUUID(input)) {
+
+                    const bedrock =
+                        await api(
+                            "/bedrock/uuid/" +
+                            encodeURIComponent(input)
+                        );
+
+                    html +=
+                        createBedrockCard(
+                            bedrock
+                        );
+
+                } else {
+
+                    const java =
+                        await api(
+                            "/java/uuid/" +
+                            encodeURIComponent(input)
+                        );
+
+                    html +=
+                        createJavaCard(
+                            java
+                        );
+                }
+
+            } else {
+
+                try {
+
+                    const java =
+                        await api(
+                            "/java/name/" +
+                            encodeURIComponent(input)
+                        );
+
+                    html +=
+                        createJavaCard(
+                            java
+                        );
+
+                } catch {}
+
+                try {
+
+                    const bedrock =
+                        await api(
+                            "/bedrock/name/" +
+                            encodeURIComponent(input)
+                        );
+
+                    html +=
+                        createBedrockCard(
+                            bedrock
+                        );
+
+                } catch {}
+
+                if (!html) {
+
+                    throw new Error(
+                        "プレイヤーが見つかりません"
+                    );
+                }
+            }
         }
 
-        // AUTO
+        // ==========
+        // Java
+        // ==========
 
-        if (isUUID(input)) {
+        else if (platform === "java") {
 
-            if (isFloodgateUUID(input))
-                return searchBedrockUUID(input);
+            if (
+                direction === "uuid" ||
+                (
+                    direction === "auto" &&
+                    isUUID(input)
+                )
+            ) {
 
-            return searchJavaUUID(input);
+                const data =
+                    await api(
+                        "/java/uuid/" +
+                        encodeURIComponent(input)
+                    );
+
+                html =
+                    createJavaCard(
+                        data
+                    );
+
+            } else {
+
+                const data =
+                    await api(
+                        "/java/name/" +
+                        encodeURIComponent(input)
+                    );
+
+                html =
+                    createJavaCard(
+                        data
+                    );
+            }
         }
 
-        const javaResult =
-            await tryJavaLookup(input);
+        // ==========
+        // Bedrock
+        // ==========
 
-        if (javaResult) {
+        else {
 
-            resultBox.innerHTML =
-`種類: Java版
+            if (
+                direction === "uuid" ||
+                (
+                    direction === "auto" &&
+                    isUUID(input)
+                )
+            ) {
 
-名前:
-${javaResult.name}
+                const data =
+                    await api(
+                        "/bedrock/uuid/" +
+                        encodeURIComponent(input)
+                    );
 
-UUID:
-${javaResult.uuid}`;
+                html =
+                    createBedrockCard(
+                        data
+                    );
 
-            return;
+            } else {
+
+                const data =
+                    await api(
+                        "/bedrock/name/" +
+                        encodeURIComponent(input)
+                    );
+
+                html =
+                    createBedrockCard(
+                        data
+                    );
+            }
         }
 
-        return searchBedrockName(input);
+        resultContent.innerHTML =
+            html;
 
-    }
-    catch(err) {
-
-        resultBox.innerHTML =
-            "エラー\n\n" + err.message;
-    }
-}
-
-async function tryJavaLookup(name) {
-
-    const response =
-        await fetch(
-            `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(name)}`
+        resultBox.classList.remove(
+            "hidden"
         );
 
-    if(response.status !== 200)
-        return null;
+    } catch (e) {
 
-    const data =
-        await response.json();
-
-    return {
-        name:data.name,
-        uuid:formatUUID(data.id)
-    };
-}
-
-async function searchJavaName(name) {
-
-    const player =
-        await tryJavaLookup(name);
-
-    if(!player) {
-
-        resultBox.innerHTML =
-            "Java版プレイヤーが見つかりません";
-
-        return;
-    }
-
-    resultBox.innerHTML =
-`種類: Java版
-
-名前:
-${player.name}
-
-UUID:
-${player.uuid}`;
-}
-
-async function searchJavaUUID(uuid) {
-
-    uuid = normalizeUUID(uuid);
-
-    const response =
-        await fetch(
-            `https://sessionserver.mojang.com/session/minecraft/profile/${uuid}`
+        showError(
+            e.message
         );
 
-    if(response.status !== 200) {
+    } finally {
 
-        resultBox.innerHTML =
-            "プレイヤーが見つかりません";
-
-        return;
+        hideLoading();
     }
-
-    const data =
-        await response.json();
-
-    resultBox.innerHTML =
-`種類: Java版
-
-名前:
-${data.name}
-
-UUID:
-${formatUUID(data.id)}`;
 }
 
-async function searchBedrockName(name) {
+window.copyText =
+copyText;
 
-    const response =
-        await fetch(
-            `https://api.geysermc.org/v2/xbox/xuid/${encodeURIComponent(name)}`
-        );
-
-    if(response.status !== 200) {
-
-        resultBox.innerHTML =
-            "統合版プレイヤーが見つかりません";
-
-        return;
-    }
-
-    const data =
-        await response.json();
-
-    const xuid =
-        BigInt(data.xuid);
-
-    const hex =
-        xuid.toString(16).padStart(16,"0");
-
-    const uuid =
-        "00000000-0000-0000-"
-        + hex.substring(0,4)
-        + "-"
-        + hex.substring(4);
-
-    resultBox.innerHTML =
-`種類: 統合版
-
-Gamertag:
-${name}
-
-XUID:
-${data.xuid}
-
-Floodgate UUID:
-${uuid}`;
-}
-
-async function searchBedrockUUID(uuid) {
-
-    const hex =
-        uuid.replaceAll("-","")
-            .substring(16);
-
-    const xuid =
-        BigInt("0x" + hex).toString();
-
-    const response =
-        await fetch(
-            `https://api.geysermc.org/v2/xbox/gamertag/${xuid}`
-        );
-
-    if(response.status !== 200) {
-
-        resultBox.innerHTML =
-`種類: 統合版
-
-XUID:
-${xuid}
-
-Gamertag取得失敗`;
-
-        return;
-    }
-
-    const data =
-        await response.json();
-
-    resultBox.innerHTML =
-`種類: 統合版
-
-Gamertag:
-${data.gamertag}
-
-XUID:
-${xuid}
-
-Floodgate UUID:
-${uuid}`;
-}
+window.searchPlayer =
+searchPlayer;
