@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minecraft UUID Lookup</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>Minecraft UUID Lookup</h1>
+
+    <label>検索モード</label>
+
+    <select id="mode">
+        <option value="auto">自動判定</option>
+        <option value="java">Java版</option>
+        <option value="bedrock">統合版</option>
+    </select>
+
+    <input
+        id="input"
+        type="text"
+        placeholder="プレイヤー名 または UUID"
+    >
+
+    <button onclick="searchPlayer()">
+        検索
+    </button>
+
+    <div id="result"></div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
