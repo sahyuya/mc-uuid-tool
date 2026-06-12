@@ -1,39 +1,103 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Minecraft UUID Lookup</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft UUID Lookup</title>
 
-<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <div class="container">
 
-    <h1>Minecraft UUID Lookup</h1>
+    <header>
+        <h1>Minecraft UUID Lookup</h1>
+        <p class="subtitle">
+            Java版UUID・Bedrock Floodgate UUID・XUID検索ツール
+        </p>
+    </header>
 
-    <label>検索モード</label>
+    <section class="search-card">
 
-    <select id="mode">
-        <option value="auto">自動判定</option>
-        <option value="java">Java版</option>
-        <option value="bedrock">統合版</option>
-    </select>
+        <div class="form-group">
+            <label for="platform">
+                プラットフォーム
+            </label>
 
-    <input
-        id="input"
-        type="text"
-        placeholder="プレイヤー名 または UUID"
-    >
+            <select id="platform">
+                <option value="auto">自動判定</option>
+                <option value="java">Java版</option>
+                <option value="bedrock">統合版 (Bedrock)</option>
+            </select>
+        </div>
 
-    <button onclick="searchPlayer()">
-        検索
-    </button>
+        <div class="form-group">
+            <label for="direction">
+                検索方向
+            </label>
 
-    <div id="result"></div>
+            <select id="direction">
+                <option value="auto">自動判定</option>
+                <option value="name">名前 → UUID</option>
+                <option value="uuid">UUID → 名前</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="input">
+                プレイヤー名 または UUID
+            </label>
+
+            <input
+                id="input"
+                type="text"
+                placeholder="例: Notch / Gakku8930 / 00000000-0000-0000-0009-01fef2b33ed5"
+                autocomplete="off"
+            >
+        </div>
+
+        <button id="searchBtn" onclick="searchPlayer()">
+            検索
+        </button>
+
+    </section>
+
+    <section id="loading" class="loading hidden">
+        検索中...
+    </section>
+
+    <section id="result" class="result hidden">
+
+        <div class="result-header">
+            <h2>検索結果</h2>
+        </div>
+
+        <div id="resultContent"></div>
+
+    </section>
 
 </div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const input =
+        document.getElementById("input");
+
+    input.addEventListener("keydown", e => {
+
+        if (e.key === "Enter") {
+            searchPlayer();
+        }
+
+    });
+
+});
+
+</script>
 
 <script src="app.js"></script>
 
