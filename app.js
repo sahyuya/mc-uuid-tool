@@ -1,6 +1,3 @@
-const API_BASE =
-"https://sahyuya.github.io/mc-uuid-tool";
-
 const resultBox =
 document.getElementById("result");
 
@@ -41,24 +38,89 @@ function isFloodgateUUID(uuid) {
     );
 }
 
-async function api(path) {
+async function fetchJavaByName(name) {
 
     const response =
         await fetch(
-            API_BASE + path
+            `https://playerdb.co/api/player/minecraft/${encodeURIComponent(name)}`
         );
 
     const json =
         await response.json();
 
-    if (!response.ok) {
-
-        throw new Error(
-            json.error || "API Error"
-        );
+    if (!json.success) {
+        throw new Error("Javaプレイヤーが見つかりません");
     }
 
-    return json;
+    return {
+        name: json.data.player.username,
+        uuid: json.data.player.id,
+        uuidNoDash: json.data.player.raw_id
+    };
+}
+
+async function fetchJavaByUUID(uuid) {
+    return fetchJavaByName(uuid);
+}
+
+async function fetchBedrockByName(name) {
+
+    const response =
+        await fetch(
+            `https://api.geysermc.org/v2/xbox/xuid/${encodeURIComponent(name)}`
+        );
+
+    const data =
+        await response.json();
+
+    const xuid =
+        data.xuid.toString();
+
+    const hex =
+        BigInt(xuid)
+            .toString(16)
+            .padStart(16, "0");
+
+    const uuid =
+        "00000000-0000-0000-" +
+        hex.substring(0,4) +
+        "-" +
+        hex.substring(4);
+
+    return {
+        gamertag: name,
+        xuid,
+        uuid,
+        uuidNoDash:
+            uuid.replaceAll("-", "")
+    };
+}
+
+async function fetchBedrockByUUID(uuid) {
+
+    const hex =
+        uuid.replaceAll("-", "")
+            .substring(16);
+
+    const xuid =
+        BigInt("0x" + hex)
+            .toString();
+
+    const response =
+        await fetch(
+            `https://api.geysermc.org/v2/xbox/gamertag/${xuid}`
+        );
+
+    const data =
+        await response.json();
+
+    return {
+        gamertag: data.gamertag,
+        xuid,
+        uuid,
+        uuidNoDash:
+            uuid.replaceAll("-", "")
+    };
 }
 
 async function copyText(text) {
@@ -273,10 +335,7 @@ async function searchPlayer() {
                 if (isFloodgateUUID(input)) {
 
                     const bedrock =
-                        await api(
-                            "/bedrock/uuid/" +
-                            encodeURIComponent(input)
-                        );
+                        await fetchBedrockByUUID(input)
 
                     html +=
                         createBedrockCard(
@@ -286,10 +345,7 @@ async function searchPlayer() {
                 } else {
 
                     const java =
-                        await api(
-                            "/java/uuid/" +
-                            encodeURIComponent(input)
-                        );
+                        await fetchJavaByUUID(input)
 
                     html +=
                         createJavaCard(
@@ -302,10 +358,7 @@ async function searchPlayer() {
                 try {
 
                     const java =
-                        await api(
-                            "/java/name/" +
-                            encodeURIComponent(input)
-                        );
+                        await fetchJavaByName(input)
 
                     html +=
                         createJavaCard(
@@ -317,10 +370,7 @@ async function searchPlayer() {
                 try {
 
                     const bedrock =
-                        await api(
-                            "/bedrock/name/" +
-                            encodeURIComponent(input)
-                        );
+                        await fetchBedrockByName(input)
 
                     html +=
                         createBedrockCard(
@@ -353,10 +403,7 @@ async function searchPlayer() {
             ) {
 
                 const data =
-                    await api(
-                        "/java/uuid/" +
-                        encodeURIComponent(input)
-                    );
+                    await fetchJavaByUUID(input)
 
                 html =
                     createJavaCard(
@@ -366,10 +413,7 @@ async function searchPlayer() {
             } else {
 
                 const data =
-                    await api(
-                        "/java/name/" +
-                        encodeURIComponent(input)
-                    );
+                    await fetchJavaByName(input)
 
                 html =
                     createJavaCard(
@@ -393,10 +437,7 @@ async function searchPlayer() {
             ) {
 
                 const data =
-                    await api(
-                        "/bedrock/uuid/" +
-                        encodeURIComponent(input)
-                    );
+                    await fetchBedrockByUUID(input)
 
                 html =
                     createBedrockCard(
@@ -406,10 +447,7 @@ async function searchPlayer() {
             } else {
 
                 const data =
-                    await api(
-                        "/bedrock/name/" +
-                        encodeURIComponent(input)
-                    );
+                    await fetchBedrockByName(input)
 
                 html =
                     createBedrockCard(
