@@ -1,5 +1,5 @@
 const API_BASE =
-"https://sahyuya.github.io/mc-uuid-tool/";
+"https://sahyuya.github.io/mc-uuid-tool";
 
 const resultBox =
 document.getElementById("result");
